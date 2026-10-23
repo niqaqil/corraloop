@@ -4,11 +4,13 @@ Supabase project: [corraloop dashboard](https://supabase.com/dashboard/project/w
 Project URL: `https://wdepjpstshrkhjzsugjq.supabase.co`  
 Region: Singapore (`ap-southeast-1`)
 
-## What has been created
+## Target architecture: Firebase Auth + Supabase database
 
-The deployed database has six application tables, all with Row Level Security enabled:
+Corraloop will keep Firebase Authentication for Google sign-in and user identity, while Supabase Postgres becomes the only application database. Firestore data migration is intentionally out of scope because there is no production data to preserve.
 
-- `profiles` — public runner profile fields; text IDs preserve Firebase UIDs during a staged migration.
+The deployed Supabase database has six application tables, all with Row Level Security enabled:
+
+- `profiles` — runner profile fields, keyed by Firebase UID.
 - `communities` — community details and database-maintained member count.
 - `memberships` — runner-to-community relationship; clients cannot self-promote to organizer.
 - `runs` — running events and a database-controlled check-in window.
@@ -19,40 +21,38 @@ The three SQL migration versions are recorded in Supabase. Check-in is done thro
 
 ## Authentication bridge
 
-Corraloop currently signs in via Firebase Auth. Keep that temporarily and pass Firebase ID tokens to Supabase through its Firebase third-party-auth integration. This avoids an immediate login rewrite.
+Pass Firebase ID tokens to Supabase through its Firebase third-party-auth integration. This keeps the current login flow while replacing Firestore.
 
 1. Open Supabase Dashboard → Authentication → Sign In / Providers → Third-Party Auth.
 2. Add Firebase and enter the **Firebase Project ID** from Firebase Console → Project settings → General. Do not use the Firestore database ID in `firebase_applet_config.xml`; that is a different setting.
-3. Configure Firebase to issue the `role: "authenticated"` custom claim in ID tokens. Use a trusted Firebase Admin SDK / Cloud Function, never a client-controlled claim. Backfill existing users and refresh tokens / sign in again.
-4. The client provider in `app/src/main/java/com/example/data/supabase/SupabaseClientProvider.kt` forwards the token. RLS uses its `sub` as a text UID, allowing Firebase UID values to be preserved.
+3. Configure Firebase to issue the `role: "authenticated"` custom claim in ID tokens. Use a trusted Firebase Admin SDK / Cloud Function, never a client-controlled claim. Set it for existing test accounts and future users, then refresh the ID token or sign in again.
+4. The client provider in `app/src/main/java/com/example/data/supabase/SupabaseClientProvider.kt` forwards the token. RLS uses its `sub` as the text user ID.
 
 Official guide: https://supabase.com/docs/guides/auth/third-party/firebase-auth
 
 ## Android client settings
 
-The app uses the Google Secrets Gradle Plugin with `.env` and `.env.example`. The example now includes the Supabase URL and **publishable** client key; these are public client values, not server secrets. Never put a Supabase secret / service-role key into Android source, `.env.example`, or an APK. The plugin makes the values available as `BuildConfig.SUPABASE_URL` and `BuildConfig.SUPABASE_PUBLISHABLE_KEY`.
+The app uses the Google Secrets Gradle Plugin with `.env` and `.env.example`. The example includes the Supabase URL and **publishable** client key; these are public client values, not server secrets. Never put a Supabase secret / service-role key into Android source, `.env.example`, or an APK. The plugin makes the values available as `BuildConfig.SUPABASE_URL` and `BuildConfig.SUPABASE_PUBLISHABLE_KEY`.
 
-The SDK dependency is `supabase-kt`; minimum Android SDK support is handled with core library desugaring because this app targets minSdk 24. If the app cannot resolve dependency versions, use the official Kotlin quickstart and make sure Kotlin / Supabase / Ktor versions are compatible.
+The SDK dependency is `supabase-kt`; core library desugaring is enabled for minSdk 24. Confirm Kotlin / Supabase / Ktor version compatibility by running the Android build before merging.
 
-## Firestore to Supabase mapping
+## Direct cutover plan — no data migration
 
-| Firestore collection | Supabase table | Notes |
-| --- | --- | --- |
-| `profiles` | `profiles` | Preserve Firebase UID in `id`. |
-| `communities` | `communities` | Preserve community document ID in `id`, creator UID in `created_by`. |
-| `memberships` | `memberships` | Preserve document ID if useful; unique pair is `(community_id, user_id)`. |
-| `runs` | `runs` | Preserve run document ID; timestamps become `timestamptz`. |
-| `checkins` | `checkins` | Keep check-in IDs if needed. Exact runner GPS coordinates are not migrated/stored in this schema. |
-| — | `event_registrations` | New relational RSVP table. |
+The schema is intentionally empty. Do not export or copy Firestore data and do not load demo personas from `DemoRepository.kt` as production records.
 
-The migrations create **empty** tables; they do not copy Firestore documents. Export Firestore separately, validate identifiers and row counts, then load using a one-off client-side migration script or trusted server process. Dry-run and reconcile counts before cutover. Do not migrate demo personas from `DemoRepository.kt` as production data.
+1. Configure the Firebase third-party auth bridge and verify the current user's refreshed ID token contains `role=authenticated`.
+2. Replace Firestore calls in `CorraloopRepository.kt` with Supabase queries/RPCs while preserving the repository's public methods so Compose screens need minimal changes.
+3. Map the existing Kotlin models to Postgres rows. Prefer explicit DTOs with Kotlin serialization rather than Firestore-only annotations/types; convert Postgres timestamps to the existing UI model types at the repository boundary.
+4. Move community creation/join/leave, event registration, and check-in writes to database operations. Use database constraints/triggers/RPCs for authorization and counters; do not trust client-only validation for attendance.
+5. Update repository tests and security tests. Verify login, profile save/read, community list/create/join/leave, run list/create, registrations, check-in eligibility and RLS.
+6. Run the Android Gradle build and tests. Only after they pass should the app's Firestore data dependency be removed. Keep Firebase Auth, Google sign-in, and any unrelated Firebase features still in use.
 
 ## First connection test
 
-1. Complete the Firebase third-party auth setup above.
-2. Sign in to Corraloop to ensure a valid Firebase ID token is present.
-3. Call `SupabaseConnectionCheck.readSampleCommunities()` from a coroutine. It issues a read-only query for `id,name`; an empty list is a successful response if the tables are still empty.
-4. Port reads first (communities and runs), then writes (profiles, memberships, registrations), and finally the check-in RPC. Leave Firebase available until parity tests pass.
+1. Complete Firebase third-party auth setup above.
+2. Sign in to Corraloop and force-refresh the Firebase ID token.
+3. Call `SupabaseConnectionCheck.readSampleCommunities()` from a coroutine. It issues a read-only query for `id,name`; an empty list is a successful response when the schema is empty.
+4. Treat this as a connection smoke test only. It does **not** mean the app has been cut over: `CorraloopRepository.kt` still needs to be ported and the Android build/tests have not yet been verified.
 
 ## Security notes
 
