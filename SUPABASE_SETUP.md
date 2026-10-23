@@ -15,7 +15,7 @@ The deployed database has six application tables, all with Row Level Security en
 - `event_registrations` — RSVP / registration status for an event.
 - `checkins` — attendance history without retaining the runner's precise GPS coordinates.
 
-The first two SQL migration versions are recorded in Supabase. Check-in is done through `public.check_in_to_run`, which validates identity, community membership, time window, GPS accuracy and server-computed distance. Only signed-in app clients may call it.
+The three SQL migration versions are recorded in Supabase. Check-in is done through `public.check_in_to_run`, which validates identity, community membership, time window, GPS accuracy and server-computed distance. Only signed-in app clients may call it.
 
 ## Authentication bridge
 
