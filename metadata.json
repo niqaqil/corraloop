@@ -1,0 +1,6 @@
+{
+  "name": "Corraloop",
+  "description": "Free group runs and GPS attendance tracking for local running communities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

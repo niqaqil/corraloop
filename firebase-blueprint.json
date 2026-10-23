@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner user ID" },
+        "name": { "type": "string", "description": "Runner full name or handle" },
+        "city": { "type": "string", "description": "Home city of the runner" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" }
+      },
+      "required": ["userId", "name", "city", "createdAt"]
+    },
+    "Community": {
+      "title": "Community",
+      "description": "A running club or group",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Community club name" },
+        "city": { "type": "string", "description": "Operating city" },
+        "description": { "type": "string", "description": "Brief description of the club" },
+        "createdBy": { "type": "string", "description": "UID of founder organizer" },
+        "memberCount": { "type": "integer", "description": "Active members count" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["name", "city", "createdBy", "createdAt"]
+    },
+    "Membership": {
+      "title": "Membership",
+      "description": "Community membership relationship",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Runner UID" },
+        "communityId": { "type": "string", "description": "Associated community ID" },
+        "role": { "type": "string", "enum": ["member", "organizer"], "description": "Role in community" },
+        "joinedAt": { "type": "string", "format": "date-time", "description": "Join timestamp" }
+      },
+      "required": ["userId", "communityId", "role", "joinedAt"]
+    },
+    "Run": {
+      "title": "Run",
+      "description": "Scheduled group run",
+      "type": "object",
+      "properties": {
+        "communityId": { "type": "string", "description": "Parent community ID" },
+        "title": { "type": "string", "description": "Run session title" },
+        "startsAt": { "type": "string", "format": "date-time", "description": "Scheduled run start time" },
+        "meetingLat": { "type": "number", "description": "Latitude of meeting location" },
+        "meetingLng": { "type": "number", "description": "Longitude of meeting location" },
+        "meetingAddress": { "type": "string", "description": "Readable location or landmark" },
+        "distanceKm": { "type": "number", "description": "Target distance in km" },
+        "checkinOpensAt": { "type": "string", "format": "date-time", "description": "Check-in start window (30 min before start)" },
+        "checkinClosesAt": { "type": "string", "format": "date-time", "description": "Check-in end window (15 min after start)" },
+        "createdBy": { "type": "string", "description": "Organizer who created the run" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["communityId", "title", "startsAt", "meetingLat", "meetingLng", "checkinOpensAt", "checkinClosesAt", "createdBy", "createdAt"]
+    },
+    "Checkin": {
+      "title": "Checkin",
+      "description": "Verified attendance checkin record",
+      "type": "object",
+      "properties": {
+        "runId": { "type": "string", "description": "Target run ID" },
+        "userId": { "type": "string", "description": "Checked-in runner UID" },
+        "userName": { "type": "string", "description": "Runner display name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Checkin timestamp" },
+        "lat": { "type": "number", "description": "Recorded GPS latitude" },
+        "lng": { "type": "number", "description": "Recorded GPS longitude" },
+        "accuracyM": { "type": "number", "description": "GPS accuracy radius in meters" },
+        "distanceToMeetingM": { "type": "number", "description": "Calculated distance from meeting point in meters" }
+      },
+      "required": ["runId", "userId", "createdAt", "lat", "lng", "accuracyM"]
+    }
+  },
+  "firestore": {
+    "/profiles/{userId}": {
+      "schema": { "$ref": "#/entities/Profile" },
+      "description": "User profiles indexed by UID"
+    },
+    "/communities/{communityId}": {
+      "schema": { "$ref": "#/entities/Community" },
+      "description": "Public community running clubs"
+    },
+    "/memberships/{membershipId}": {
+      "schema": { "$ref": "#/entities/Membership" },
+      "description": "Club memberships indexed by {communityId}_{userId}"
+    },
+    "/runs/{runId}": {
+      "schema": { "$ref": "#/entities/Run" },
+      "description": "Community runs and meeting points"
+    },
+    "/checkins/{checkinId}": {
+      "schema": { "$ref": "#/entities/Checkin" },
+      "description": "Verified run attendance records indexed by {runId}_{userId}"
+    }
+  }
+}

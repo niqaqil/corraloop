@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Track Loop -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M 38,36 C 30,36 24,42 24,54 C 24,66 30,72 38,72 L 70,72 C 78,72 84,66 84,54 C 84,42 78,36 70,36 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Inner Checkin Pin Marker / Runner Figure in Center -->
+    <!-- Runner Head -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 54,42 A 4.5,4.5 0 1,0 54,33 A 4.5,4.5 0 1,0 54,42 Z" />
+    <!-- Runner Body / Motion Strides -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 51,44 L 56,44 L 59,51 L 64,52 L 63.5,55 L 57.5,53.5 L 54.5,48 L 51,55 L 46,55 L 46.5,52 L 50,52 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 53,52 L 56,60 L 61,64 L 59,66 L 54,61.5 L 51,55 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 49,54 L 45,61 L 40,62 L 40,59.5 L 44,58.5 L 47,53 Z" />
+</vector>
